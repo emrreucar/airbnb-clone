@@ -1,0 +1,90 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  name           String?
+  email          String?   @unique
+  emailVerified  DateTime?
+  image          String?
+  hashedPassword String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  favoriteIds    String[]  @db.ObjectId
+
+  // Relation
+  accounts     Account[]
+  listings     Listing[]
+  reservations Reservation[]
+}
+
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String // hesap türü OAuth veya yerel
+  provider          String // google or github or email etc.
+  providerAccountId String // sağlayıcıya özgü hesap kimliği
+  refresh_token     String? @db.String
+  access_token      String? @db.String
+  expires_at        Int?
+  token_type        String?
+  scope             String? // token için belirlenen yetki alanlarını saklar
+  id_token          String? @db.String
+  session_state     String? // oturum durumu
+
+  // Relation
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade) // onDelete: cascade -> user silinirse account da otomatik silinir
+
+  // -------------------------------------------------------------------------------------------
+
+  // Mesela google ile giriş yaptı (provider: google) ve google'da ki hesap id'si (providerAccountId) ile birlikte aynı kullanıcı tekrar kayıt olamaz.
+
+  // Örnek: provider: google, providerAccountId: 123456 -> Bu kombinasyon bir kez olabilir. Başka bir kullanıcı google ile giriş yaptığında providerAccountId: 123456 olamaz. Ama bu kod satırını kullanmasaydık bu mümkün olurdu.
+
+  @@unique([provider, providerAccountId]) // -> @@unique: Bir Prisma modelinde tablo düzeyinde bir benzersizlik kısıtlaması tanımlar. Bu belirtilen sütunların birleşiminin benzersiz olmasını sağlar. Yani, aynı değer kombinasyonuna sahip birden fazla satır olamaz.
+}
+
+model Listing {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  description   String
+  imageSrc      String
+  createdAt     DateTime @default(now())
+  category      String
+  roomCount     Int
+  bathroomCount Int
+  guestCount    Int
+  locationValue String
+  userId        String   @db.ObjectId
+  price         Int
+
+  // Relation
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reservation Reservation[]
+}
+
+model Reservation {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  listingId  String   @db.ObjectId
+  startDate  DateTime
+  endDate    DateTime
+  totalPrice Int
+  createdAt  DateTime @default(now())
+
+  // relation
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}

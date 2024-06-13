@@ -93,8 +93,8 @@ const Modal: React.FC<ModalProps> = ({
                 xl:w-2/5
                 mx-auto
                 h-full
-                lg:h-auto
-                md:h-auto
+                lg:h-full
+                md:h-full
               "
         >
           {/* CONTENT SECTION START */}
